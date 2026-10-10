@@ -1,954 +1,993 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INSIILAB — Transform Your Images</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --card: #1a1a26;
-    --accent: #ff3c6e;
-    --accent2: #00f0c8;
-    --accent3: #7c5cfc;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
-    --border: #2a2a3e;
-  }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Glowing orbs */
-  body::after {
-    content: '';
-    position: fixed;
-    width: 600px; height: 600px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,60,110,0.08) 0%, transparent 70%);
-    top: -200px; right: -100px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .glow-orb {
-    position: fixed;
-    width: 500px; height: 500px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,240,200,0.06) 0%, transparent 70%);
-    bottom: -150px; left: -100px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0 24px;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Header */
-  header {
-    padding: 32px 0 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 48px;
-  }
-
-  .header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .logo {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 3rem;
-    letter-spacing: 4px;
-    background: linear-gradient(135deg, var(--accent), var(--accent3), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-  }
-
-  .tagline {
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
-
-  .badge {
-    background: linear-gradient(135deg, var(--accent3), var(--accent));
-    color: white;
-    padding: 6px 14px;
-    border-radius: 2px;
-    font-size: 0.65rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-weight: 700;
-  }
-
-  /* Upload Zone */
-  .upload-section {
-    margin-bottom: 48px;
-  }
-
-  .drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: 4px;
-    padding: 64px 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: var(--surface);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .drop-zone::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,60,110,0.05), rgba(124,92,252,0.05));
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .drop-zone:hover::before,
-  .drop-zone.drag-over::before { opacity: 1; }
-
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--accent);
-    transform: scale(1.005);
-  }
-
-  .drop-icon {
-    font-size: 3.5rem;
-    display: block;
-    margin-bottom: 16px;
-    filter: grayscale(0.3);
-  }
-
-  .drop-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 2rem;
-    letter-spacing: 3px;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-
-  .drop-sub {
-    font-size: 0.7rem;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  .drop-zone input[type=file] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
-
-  /* Main workspace */
-  .workspace {
-    display: none;
-    gap: 32px;
-    flex-direction: column;
-  }
-
-  .workspace.active { display: flex; }
-
-  .preview-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-
-  @media (max-width: 768px) {
-    .preview-row { grid-template-columns: 1fr; }
-  }
-
-  .panel-label {
-    font-size: 0.6rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-    font-weight: 700;
-  }
-
-  .panel-label span {
-    color: var(--accent);
-  }
-
-  .img-wrapper {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    min-height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .img-wrapper img, .img-wrapper canvas {
-    max-width: 100%;
-    max-height: 520px;
-    display: block;
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-  }
-
-  /* Filter Grid */
-  .filters-section {
-    margin-bottom: 0;
-  }
-
-  .section-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.6rem;
-    letter-spacing: 4px;
-    color: var(--text);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .filter-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-  }
-
-  @media (max-width: 900px) {
-    .filter-grid { grid-template-columns: repeat(3, 1fr); }
-  }
-
-  @media (max-width: 580px) {
-    .filter-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  .filter-btn {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 10px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .filter-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, var(--accent), var(--accent3));
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-
-  .filter-btn:hover::before { opacity: 0.08; }
-
-  .filter-btn.active {
-    border-color: var(--accent);
-    background: rgba(255,60,110,0.08);
-  }
-
-  .filter-btn.active::after {
-    content: '✓';
-    position: absolute;
-    top: 6px; right: 8px;
-    font-size: 0.6rem;
-    color: var(--accent);
-  }
-
-  .filter-icon {
-    font-size: 1.6rem;
-    display: block;
-    margin-bottom: 6px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .filter-name {
-    font-size: 0.58rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text);
-    font-weight: 700;
-    position: relative;
-    z-index: 1;
-    display: block;
-  }
-
-  .filter-desc {
-    font-size: 0.5rem;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-top: 3px;
-    position: relative;
-    z-index: 1;
-    display: block;
-  }
-
-  /* Controls */
-  .controls-bar {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 700;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #c0245a);
-    color: white;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255,60,110,0.35);
-  }
-
-  .btn-secondary {
-    background: var(--card);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn-secondary:hover {
-    border-color: var(--accent2);
-    color: var(--accent2);
-  }
-
-  .btn-teal {
-    background: linear-gradient(135deg, var(--accent2), #008f78);
-    color: #0a0a0f;
-  }
-
-  .btn-teal:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,240,200,0.3);
-  }
-
-  .current-filter-label {
-    margin-left: auto;
-    font-size: 0.6rem;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-
-  .current-filter-label span {
-    color: var(--accent2);
-    font-weight: 700;
-  }
-
-  /* Intensity slider */
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-  }
-
-  .slider-label {
-    font-size: 0.6rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    white-space: nowrap;
-    font-weight: 700;
-  }
-
-  input[type=range] {
-    flex: 1;
-    -webkit-appearance: none;
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    outline: none;
-  }
-
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(255,60,110,0.5);
-  }
-
-  .slider-val {
-    font-size: 0.7rem;
-    color: var(--accent2);
-    font-weight: 700;
-    min-width: 36px;
-    text-align: right;
-  }
-
-  /* Processing overlay */
-  .processing {
-    position: absolute;
-    inset: 0;
-    background: rgba(10,10,15,0.85);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 10;
-  }
-
-  .processing.show { display: flex; }
-
-  .spin {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .proc-text {
-    font-size: 0.6rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* New upload hint in workspace */
-  .reupload-hint {
-    font-size: 0.55rem;
-    color: var(--muted);
-    letter-spacing: 1px;
-    margin-left: auto;
-  }
-
-  footer {
-    margin-top: 64px;
-    padding: 24px 0;
-    border-top: 1px solid var(--border);
-    text-align: center;
-    font-size: 0.55rem;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    position: relative;
-    z-index: 1;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CI/CD Demo!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --accent: #ff3c6e;
+      --accent2: #00f0c8;
+      --accent3: #7c5cfc;
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --border: #2a2a3e;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124, 92, 252, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 92, 252, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glowing orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 60, 110, 0.08) 0%, transparent 70%);
+      top: -200px;
+      right: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-orb {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 200, 0.06) 0%, transparent 70%);
+      bottom: -150px;
+      left: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      padding: 32px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 3rem;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--accent), var(--accent3), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+
+    .tagline {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, var(--accent3), var(--accent));
+      color: white;
+      padding: 6px 14px;
+      border-radius: 2px;
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* Upload Zone */
+    .upload-section {
+      margin-bottom: 48px;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      padding: 64px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 60, 110, 0.05), rgba(124, 92, 252, 0.05));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .drop-zone:hover::before,
+    .drop-zone.drag-over::before {
+      opacity: 1;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      transform: scale(1.005);
+    }
+
+    .drop-icon {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: 16px;
+      filter: grayscale(0.3);
+    }
+
+    .drop-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 2rem;
+      letter-spacing: 3px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .drop-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Main workspace */
+    .workspace {
+      display: none;
+      gap: 32px;
+      flex-direction: column;
+    }
+
+    .workspace.active {
+      display: flex;
+    }
+
+    .preview-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .preview-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel-label {
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .panel-label span {
+      color: var(--accent);
+    }
+
+    .img-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .img-wrapper img,
+    .img-wrapper canvas {
+      max-width: 100%;
+      max-height: 520px;
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+
+    /* Filter Grid */
+    .filters-section {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.6rem;
+      letter-spacing: 4px;
+      color: var(--text);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 580px) {
+      .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .filter-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .filter-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .filter-btn:hover::before {
+      opacity: 0.08;
+    }
+
+    .filter-btn.active {
+      border-color: var(--accent);
+      background: rgba(255, 60, 110, 0.08);
+    }
+
+    .filter-btn.active::after {
+      content: '✓';
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 0.6rem;
+      color: var(--accent);
+    }
+
+    .filter-icon {
+      font-size: 1.6rem;
+      display: block;
+      margin-bottom: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .filter-name {
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text);
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    .filter-desc {
+      font-size: 0.5rem;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-top: 3px;
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    /* Controls */
+    .controls-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #c0245a);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255, 60, 110, 0.35);
+    }
+
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .btn-teal {
+      background: linear-gradient(135deg, var(--accent2), #008f78);
+      color: #0a0a0f;
+    }
+
+    .btn-teal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 240, 200, 0.3);
+    }
+
+    .current-filter-label {
+      margin-left: auto;
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .current-filter-label span {
+      color: var(--accent2);
+      font-weight: 700;
+    }
+
+    /* Intensity slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .slider-label {
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 60, 110, 0.5);
+    }
+
+    .slider-val {
+      font-size: 0.7rem;
+      color: var(--accent2);
+      font-weight: 700;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Processing overlay */
+    .processing {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .processing.show {
+      display: flex;
+    }
+
+    .spin {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .proc-text {
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* New upload hint in workspace */
+    .reupload-hint {
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-left: auto;
+    }
+
+    footer {
+      margin-top: 64px;
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
 </head>
+
 <body>
-<div class="glow-orb"></div>
+  <div class="glow-orb"></div>
 
-<div class="container">
-  <header>
-    <div class="header-inner">
-      <div>
-        <div class="logo">InsiiLab</div>
-        <div class="tagline">// Image Transformation Studio</div>
-      </div>
-      <div class="badge">10 Filters</div>
-    </div>
-  </header>
-
-  <!-- Upload Zone -->
-  <div class="upload-section" id="uploadSection">
-    <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="image/*">
-      <span class="drop-icon">🎨</span>
-      <div class="drop-title">Drop Image Here</div>
-      <div class="drop-sub">or click to browse · PNG, JPG, WEBP supported</div>
-    </div>
-  </div>
-
-  <!-- Workspace -->
-  <div class="workspace" id="workspace">
-
-    <!-- Preview Row -->
-    <div class="preview-row">
-      <div>
-        <div class="panel-label">Original <span>// SOURCE</span></div>
-        <div class="img-wrapper">
-          <img id="originalImg" src="" alt="Original">
+  <div class="container">
+    <header>
+      <div class="header-inner">
+        <div>
+          <div class="logo">InsiiLab</div>
+          <div class="tagline">// Image Transformation Studio</div>
         </div>
+        <div class="badge">10 Filters</div>
       </div>
-      <div>
-        <div class="panel-label">Filtered <span>// OUTPUT</span></div>
-        <div class="img-wrapper" style="position:relative;">
-          <canvas id="outputCanvas"></canvas>
-          <div class="processing" id="processing">
-            <div class="spin"></div>
-            <div class="proc-text">Applying filter...</div>
+    </header>
+
+    <!-- Upload Zone -->
+    <div class="upload-section" id="uploadSection">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <span class="drop-icon">🎨</span>
+        <div class="drop-title">Drop Image Here</div>
+        <div class="drop-sub">or click to browse · PNG, JPG, WEBP supported</div>
+      </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace" id="workspace">
+
+      <!-- Preview Row -->
+      <div class="preview-row">
+        <div>
+          <div class="panel-label">Original <span>// SOURCE</span></div>
+          <div class="img-wrapper">
+            <img id="originalImg" src="" alt="Original">
+          </div>
+        </div>
+        <div>
+          <div class="panel-label">Filtered <span>// OUTPUT</span></div>
+          <div class="img-wrapper" style="position:relative;">
+            <canvas id="outputCanvas"></canvas>
+            <div class="processing" id="processing">
+              <div class="spin"></div>
+              <div class="proc-text">Applying filter...</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Intensity Slider -->
-    <div class="slider-row">
-      <span class="slider-label">Intensity</span>
-      <input type="range" id="intensitySlider" min="0" max="100" value="100">
-      <span class="slider-val" id="intensityVal">100%</span>
-    </div>
-
-    <!-- Filter Selection -->
-    <div class="filters-section">
-      <div class="section-title">Choose Filter</div>
-      <div class="filter-grid" id="filterGrid">
-        <!-- Filters injected by JS -->
+      <!-- Intensity Slider -->
+      <div class="slider-row">
+        <span class="slider-label">Intensity</span>
+        <input type="range" id="intensitySlider" min="0" max="100" value="100">
+        <span class="slider-val" id="intensityVal">100%</span>
       </div>
-    </div>
 
-    <!-- Action Bar -->
-    <div class="controls-bar">
-      <button class="btn btn-teal" id="downloadBtn">⬇ Download</button>
-      <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
-      <button class="btn btn-secondary" id="newImgBtn">+ New Image</button>
-      <span class="current-filter-label">Active: <span id="activeFilterName">Original</span></span>
-    </div>
+      <!-- Filter Selection -->
+      <div class="filters-section">
+        <div class="section-title">Choose Filter</div>
+        <div class="filter-grid" id="filterGrid">
+          <!-- Filters injected by JS -->
+        </div>
+      </div>
 
+      <!-- Action Bar -->
+      <div class="controls-bar">
+        <button class="btn btn-teal" id="downloadBtn">⬇ Download</button>
+        <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+        <button class="btn btn-secondary" id="newImgBtn">+ New Image</button>
+        <span class="current-filter-label">Active: <span id="activeFilterName">Original</span></span>
+      </div>
+
+    </div>
   </div>
-</div>
 
-<footer>Insii&Co &copy; 2026 &mdash; All filters applied client-side &mdash; Your images never leave your device</footer>
+  <footer>Insii&Co &copy; 2026 &mdash; All filters applied client-side &mdash; Your images never leave your device
+  </footer>
 
-<canvas id="hiddenCanvas" style="display:none;"></canvas>
+  <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
-<script>
-// ─── FILTER DEFINITIONS ───────────────────────────────────────────────────────
-const FILTERS = [
-  {
-    id: 'original',
-    name: 'Original',
-    desc: 'No filter',
-    icon: '🖼️',
-    apply: (ctx, w, h, intensity) => { /* no-op */ }
-  },
-  {
-    id: 'bw',
-    name: 'B & W',
-    desc: 'Grayscale',
-    icon: '⬛',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const g = 0.299*px[i] + 0.587*px[i+1] + 0.114*px[i+2];
-        px[i]   = lerp(px[i],   g, t);
-        px[i+1] = lerp(px[i+1], g, t);
-        px[i+2] = lerp(px[i+2], g, t);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'sepia',
-    name: 'Sepia',
-    desc: 'Vintage warm',
-    icon: '🟫',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const r = px[i], g = px[i+1], b = px[i+2];
-        const sr = Math.min(255, 0.393*r + 0.769*g + 0.189*b);
-        const sg = Math.min(255, 0.349*r + 0.686*g + 0.168*b);
-        const sb = Math.min(255, 0.272*r + 0.534*g + 0.131*b);
-        px[i]   = lerp(r, sr, t);
-        px[i+1] = lerp(g, sg, t);
-        px[i+2] = lerp(b, sb, t);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'sketch',
-    name: 'Sketch',
-    desc: 'Pencil drawing',
-    icon: '✏️',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      // Grayscale first
-      const gray = new Float32Array(w * h);
-      for (let i = 0; i < px.length; i += 4) {
-        gray[i/4] = 0.299*px[i] + 0.587*px[i+1] + 0.114*px[i+2];
-      }
-      // Sobel edge detection
-      for (let y = 1; y < h-1; y++) {
-        for (let x = 1; x < w-1; x++) {
-          const idx = y * w + x;
-          const gx =
-            -gray[(y-1)*w+(x-1)] + gray[(y-1)*w+(x+1)]
-            -2*gray[y*w+(x-1)]   + 2*gray[y*w+(x+1)]
-            -gray[(y+1)*w+(x-1)] + gray[(y+1)*w+(x+1)];
-          const gy =
-            -gray[(y-1)*w+(x-1)] - 2*gray[(y-1)*w+x] - gray[(y-1)*w+(x+1)]
-            +gray[(y+1)*w+(x-1)] + 2*gray[(y+1)*w+x] + gray[(y+1)*w+(x+1)];
-          const edge = Math.min(255, Math.sqrt(gx*gx + gy*gy));
-          const sketch = 255 - edge;
-          const pi = idx * 4;
-          px[pi]   = lerp(px[pi],   sketch, t);
-          px[pi+1] = lerp(px[pi+1], sketch, t);
-          px[pi+2] = lerp(px[pi+2], sketch, t);
+  <script>
+    // ─── FILTER DEFINITIONS ───────────────────────────────────────────────────────
+    const FILTERS = [
+      {
+        id: 'original',
+        name: 'Original',
+        desc: 'No filter',
+        icon: '🖼️',
+        apply: (ctx, w, h, intensity) => { /* no-op */ }
+      },
+      {
+        id: 'bw',
+        name: 'B & W',
+        desc: 'Grayscale',
+        icon: '⬛',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+            px[i] = lerp(px[i], g, t);
+            px[i + 1] = lerp(px[i + 1], g, t);
+            px[i + 2] = lerp(px[i + 2], g, t);
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'sepia',
+        name: 'Sepia',
+        desc: 'Vintage warm',
+        icon: '🟫',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const r = px[i], g = px[i + 1], b = px[i + 2];
+            const sr = Math.min(255, 0.393 * r + 0.769 * g + 0.189 * b);
+            const sg = Math.min(255, 0.349 * r + 0.686 * g + 0.168 * b);
+            const sb = Math.min(255, 0.272 * r + 0.534 * g + 0.131 * b);
+            px[i] = lerp(r, sr, t);
+            px[i + 1] = lerp(g, sg, t);
+            px[i + 2] = lerp(b, sb, t);
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'sketch',
+        name: 'Sketch',
+        desc: 'Pencil drawing',
+        icon: '✏️',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          // Grayscale first
+          const gray = new Float32Array(w * h);
+          for (let i = 0; i < px.length; i += 4) {
+            gray[i / 4] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          }
+          // Sobel edge detection
+          for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+              const idx = y * w + x;
+              const gx =
+                -gray[(y - 1) * w + (x - 1)] + gray[(y - 1) * w + (x + 1)]
+                - 2 * gray[y * w + (x - 1)] + 2 * gray[y * w + (x + 1)]
+                - gray[(y + 1) * w + (x - 1)] + gray[(y + 1) * w + (x + 1)];
+              const gy =
+                -gray[(y - 1) * w + (x - 1)] - 2 * gray[(y - 1) * w + x] - gray[(y - 1) * w + (x + 1)]
+                + gray[(y + 1) * w + (x - 1)] + 2 * gray[(y + 1) * w + x] + gray[(y + 1) * w + (x + 1)];
+              const edge = Math.min(255, Math.sqrt(gx * gx + gy * gy));
+              const sketch = 255 - edge;
+              const pi = idx * 4;
+              px[pi] = lerp(px[pi], sketch, t);
+              px[pi + 1] = lerp(px[pi + 1], sketch, t);
+              px[pi + 2] = lerp(px[pi + 2], sketch, t);
+            }
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'vintage',
+        name: 'Vintage',
+        desc: 'Faded retro',
+        icon: '📷',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const vr = Math.min(255, px[i] * 1.08 + 20);
+            const vg = Math.min(255, px[i + 1] * 0.92 + 10);
+            const vb = Math.min(255, px[i + 2] * 0.78 + 30);
+            px[i] = lerp(px[i], vr, t);
+            px[i + 1] = lerp(px[i + 1], vg, t);
+            px[i + 2] = lerp(px[i + 2], vb, t);
+          }
+          ctx.putImageData(d, 0, 0);
+          // Vignette
+          const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.3 * t, w / 2, h / 2, h * 0.85);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          grad.addColorStop(1, `rgba(40,10,0,${0.55 * t})`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
+        }
+      },
+      {
+        id: 'neon',
+        name: 'Neon',
+        desc: 'Cyberpunk glow',
+        icon: '💜',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const r = px[i], g = px[i + 1], b = px[i + 2];
+            px[i] = lerp(r, Math.min(255, r * 0.5 + b * 0.6), t);
+            px[i + 1] = lerp(g, Math.min(255, g * 0.2 + r * 0.3), t);
+            px[i + 2] = lerp(b, Math.min(255, b * 1.4 + r * 0.4), t);
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'cartoon',
+        name: 'Cartoon',
+        desc: 'Bold & flat',
+        icon: '🎠',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          // Posterize + boost saturation
+          const levels = Math.round(lerp(255, 6, t));
+          const step = 255 / levels;
+          for (let i = 0; i < px.length; i += 4) {
+            px[i] = Math.round(px[i] / step) * step;
+            px[i + 1] = Math.round(px[i + 1] / step) * step;
+            px[i + 2] = Math.round(px[i + 2] / step) * step;
+            // Boost saturation
+            const mx = Math.max(px[i], px[i + 1], px[i + 2]);
+            const mn = Math.min(px[i], px[i + 1], px[i + 2]);
+            const boost = 1 + t * 0.5;
+            const mid = (mx + mn) / 2;
+            px[i] = clamp(mid + (px[i] - mid) * boost);
+            px[i + 1] = clamp(mid + (px[i + 1] - mid) * boost);
+            px[i + 2] = clamp(mid + (px[i + 2] - mid) * boost);
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'thermal',
+        name: 'Thermal',
+        desc: 'Heat map',
+        icon: '🌡️',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const heat = (0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]) / 255;
+            let tr, tg, tb;
+            if (heat < 0.25) { tr = 0; tg = 0; tb = clamp(heat * 4 * 255); }
+            else if (heat < 0.5) { tr = 0; tg = clamp((heat - 0.25) * 4 * 255); tb = clamp((0.5 - heat) * 4 * 255); }
+            else if (heat < 0.75) { tr = clamp((heat - 0.5) * 4 * 255); tg = 255; tb = 0; }
+            else { tr = 255; tg = clamp((1 - heat) * 4 * 255); tb = 0; }
+            px[i] = lerp(px[i], tr, t);
+            px[i + 1] = lerp(px[i + 1], tg, t);
+            px[i + 2] = lerp(px[i + 2], tb, t);
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+      },
+      {
+        id: 'dreamy',
+        name: 'Dreamy',
+        desc: 'Soft glow',
+        icon: '🌸',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          // Pastel + brighten
+          for (let i = 0; i < px.length; i += 4) {
+            const pr = Math.min(255, px[i] * 0.7 + 80);
+            const pg = Math.min(255, px[i + 1] * 0.7 + 70);
+            const pb = Math.min(255, px[i + 2] * 0.85 + 60);
+            px[i] = lerp(px[i], pr, t);
+            px[i + 1] = lerp(px[i + 1], pg, t);
+            px[i + 2] = lerp(px[i + 2], pb, t);
+          }
+          ctx.putImageData(d, 0, 0);
+          // Soft radial glow overlay
+          const grd = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.6);
+          grd.addColorStop(0, `rgba(255,200,220,${0.15 * t})`);
+          grd.addColorStop(1, `rgba(180,140,220,${0.1 * t})`);
+          ctx.fillStyle = grd;
+          ctx.fillRect(0, 0, w, h);
+        }
+      },
+      {
+        id: 'invert',
+        name: 'Invert',
+        desc: 'Negative film',
+        icon: '🔁',
+        apply: (ctx, w, h, t) => {
+          const d = ctx.getImageData(0, 0, w, h);
+          const px = d.data;
+          for (let i = 0; i < px.length; i += 4) {
+            px[i] = lerp(px[i], 255 - px[i], t);
+            px[i + 1] = lerp(px[i + 1], 255 - px[i + 1], t);
+            px[i + 2] = lerp(px[i + 2], 255 - px[i + 2], t);
+          }
+          ctx.putImageData(d, 0, 0);
         }
       }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'vintage',
-    name: 'Vintage',
-    desc: 'Faded retro',
-    icon: '📷',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const vr = Math.min(255, px[i] * 1.08 + 20);
-        const vg = Math.min(255, px[i+1] * 0.92 + 10);
-        const vb = Math.min(255, px[i+2] * 0.78 + 30);
-        px[i]   = lerp(px[i],   vr, t);
-        px[i+1] = lerp(px[i+1], vg, t);
-        px[i+2] = lerp(px[i+2], vb, t);
-      }
-      ctx.putImageData(d, 0, 0);
-      // Vignette
-      const grad = ctx.createRadialGradient(w/2, h/2, h*0.3*t, w/2, h/2, h*0.85);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(1, `rgba(40,10,0,${0.55*t})`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
-    }
-  },
-  {
-    id: 'neon',
-    name: 'Neon',
-    desc: 'Cyberpunk glow',
-    icon: '💜',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const r = px[i], g = px[i+1], b = px[i+2];
-        px[i]   = lerp(r, Math.min(255, r * 0.5 + b * 0.6), t);
-        px[i+1] = lerp(g, Math.min(255, g * 0.2 + r * 0.3), t);
-        px[i+2] = lerp(b, Math.min(255, b * 1.4 + r * 0.4), t);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'cartoon',
-    name: 'Cartoon',
-    desc: 'Bold & flat',
-    icon: '🎠',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      // Posterize + boost saturation
-      const levels = Math.round(lerp(255, 6, t));
-      const step = 255 / levels;
-      for (let i = 0; i < px.length; i += 4) {
-        px[i]   = Math.round(px[i]   / step) * step;
-        px[i+1] = Math.round(px[i+1] / step) * step;
-        px[i+2] = Math.round(px[i+2] / step) * step;
-        // Boost saturation
-        const mx = Math.max(px[i],px[i+1],px[i+2]);
-        const mn = Math.min(px[i],px[i+1],px[i+2]);
-        const boost = 1 + t * 0.5;
-        const mid = (mx+mn)/2;
-        px[i]   = clamp(mid + (px[i]   - mid) * boost);
-        px[i+1] = clamp(mid + (px[i+1] - mid) * boost);
-        px[i+2] = clamp(mid + (px[i+2] - mid) * boost);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'thermal',
-    name: 'Thermal',
-    desc: 'Heat map',
-    icon: '🌡️',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const heat = (0.299*px[i] + 0.587*px[i+1] + 0.114*px[i+2]) / 255;
-        let tr, tg, tb;
-        if (heat < 0.25) { tr=0; tg=0; tb=clamp(heat*4*255); }
-        else if (heat < 0.5) { tr=0; tg=clamp((heat-0.25)*4*255); tb=clamp((0.5-heat)*4*255); }
-        else if (heat < 0.75) { tr=clamp((heat-0.5)*4*255); tg=255; tb=0; }
-        else { tr=255; tg=clamp((1-heat)*4*255); tb=0; }
-        px[i]   = lerp(px[i],   tr, t);
-        px[i+1] = lerp(px[i+1], tg, t);
-        px[i+2] = lerp(px[i+2], tb, t);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  },
-  {
-    id: 'dreamy',
-    name: 'Dreamy',
-    desc: 'Soft glow',
-    icon: '🌸',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      // Pastel + brighten
-      for (let i = 0; i < px.length; i += 4) {
-        const pr = Math.min(255, px[i]   * 0.7 + 80);
-        const pg = Math.min(255, px[i+1] * 0.7 + 70);
-        const pb = Math.min(255, px[i+2] * 0.85 + 60);
-        px[i]   = lerp(px[i],   pr, t);
-        px[i+1] = lerp(px[i+1], pg, t);
-        px[i+2] = lerp(px[i+2], pb, t);
-      }
-      ctx.putImageData(d, 0, 0);
-      // Soft radial glow overlay
-      const grd = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w*0.6);
-      grd.addColorStop(0, `rgba(255,200,220,${0.15*t})`);
-      grd.addColorStop(1, `rgba(180,140,220,${0.1*t})`);
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, w, h);
-    }
-  },
-  {
-    id: 'invert',
-    name: 'Invert',
-    desc: 'Negative film',
-    icon: '🔁',
-    apply: (ctx, w, h, t) => {
-      const d = ctx.getImageData(0, 0, w, h);
-      const px = d.data;
-      for (let i = 0; i < px.length; i += 4) {
-        px[i]   = lerp(px[i],   255 - px[i],   t);
-        px[i+1] = lerp(px[i+1], 255 - px[i+1], t);
-        px[i+2] = lerp(px[i+2], 255 - px[i+2], t);
-      }
-      ctx.putImageData(d, 0, 0);
-    }
-  }
-];
+    ];
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-function lerp(a, b, t) { return a + (b - a) * t; }
-function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+    // ─── HELPERS ──────────────────────────────────────────────────────────────────
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let originalImageData = null;
-let currentFilterId = 'original';
-let intensity = 1.0;
+    // ─── STATE ────────────────────────────────────────────────────────────────────
+    let originalImageData = null;
+    let currentFilterId = 'original';
+    let intensity = 1.0;
 
-// ─── DOM REFS ─────────────────────────────────────────────────────────────────
-const dropZone      = document.getElementById('dropZone');
-const fileInput     = document.getElementById('fileInput');
-const uploadSection = document.getElementById('uploadSection');
-const workspace     = document.getElementById('workspace');
-const originalImg   = document.getElementById('originalImg');
-const outputCanvas  = document.getElementById('outputCanvas');
-const hiddenCanvas  = document.getElementById('hiddenCanvas');
-const processing    = document.getElementById('processing');
-const intensitySlider = document.getElementById('intensitySlider');
-const intensityVal  = document.getElementById('intensityVal');
-const activeFilterName = document.getElementById('activeFilterName');
-const filterGrid    = document.getElementById('filterGrid');
+    // ─── DOM REFS ─────────────────────────────────────────────────────────────────
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadSection = document.getElementById('uploadSection');
+    const workspace = document.getElementById('workspace');
+    const originalImg = document.getElementById('originalImg');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const hiddenCanvas = document.getElementById('hiddenCanvas');
+    const processing = document.getElementById('processing');
+    const intensitySlider = document.getElementById('intensitySlider');
+    const intensityVal = document.getElementById('intensityVal');
+    const activeFilterName = document.getElementById('activeFilterName');
+    const filterGrid = document.getElementById('filterGrid');
 
-// ─── BUILD FILTER BUTTONS ────────────────────────────────────────────────────
-FILTERS.forEach(f => {
-  const btn = document.createElement('button');
-  btn.className = 'filter-btn' + (f.id === 'original' ? ' active' : '');
-  btn.dataset.filterId = f.id;
-  btn.innerHTML = `
+    // ─── BUILD FILTER BUTTONS ────────────────────────────────────────────────────
+    FILTERS.forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (f.id === 'original' ? ' active' : '');
+      btn.dataset.filterId = f.id;
+      btn.innerHTML = `
     <span class="filter-icon">${f.icon}</span>
     <span class="filter-name">${f.name}</span>
     <span class="filter-desc">${f.desc}</span>
   `;
-  btn.addEventListener('click', () => selectFilter(f.id));
-  filterGrid.appendChild(btn);
-});
+      btn.addEventListener('click', () => selectFilter(f.id));
+      filterGrid.appendChild(btn);
+    });
 
-// ─── DRAG & DROP ─────────────────────────────────────────────────────────────
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) loadImage(file);
-});
+    // ─── DRAG & DROP ─────────────────────────────────────────────────────────────
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) loadImage(file);
+    });
 
-fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) loadImage(e.target.files[0]);
-});
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadImage(e.target.files[0]);
+    });
 
-// ─── LOAD IMAGE ───────────────────────────────────────────────────────────────
-function loadImage(file) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      // Show original
-      originalImg.src = ev.target.result;
+    // ─── LOAD IMAGE ───────────────────────────────────────────────────────────────
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          // Show original
+          originalImg.src = ev.target.result;
 
-      // Draw to hidden canvas to get pixel data
-      hiddenCanvas.width = img.width;
-      hiddenCanvas.height = img.height;
-      const hCtx = hiddenCanvas.getContext('2d');
-      hCtx.drawImage(img, 0, 0);
-      originalImageData = hCtx.getImageData(0, 0, img.width, img.height);
+          // Draw to hidden canvas to get pixel data
+          hiddenCanvas.width = img.width;
+          hiddenCanvas.height = img.height;
+          const hCtx = hiddenCanvas.getContext('2d');
+          hCtx.drawImage(img, 0, 0);
+          originalImageData = hCtx.getImageData(0, 0, img.width, img.height);
 
-      // Set output canvas size
-      outputCanvas.width = img.width;
-      outputCanvas.height = img.height;
+          // Set output canvas size
+          outputCanvas.width = img.width;
+          outputCanvas.height = img.height;
 
-      // Show workspace
-      uploadSection.style.display = 'none';
-      workspace.classList.add('active');
+          // Show workspace
+          uploadSection.style.display = 'none';
+          workspace.classList.add('active');
 
-      // Apply current filter
+          // Apply current filter
+          applyFilter(currentFilterId);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ─── SELECT FILTER ────────────────────────────────────────────────────────────
+    function selectFilter(id) {
+      currentFilterId = id;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filterId === id);
+      });
+      const f = FILTERS.find(f => f.id === id);
+      activeFilterName.textContent = f.name;
+      applyFilter(id);
+    }
+
+    // ─── APPLY FILTER ─────────────────────────────────────────────────────────────
+    function applyFilter(id) {
+      if (!originalImageData) return;
+
+      processing.classList.add('show');
+
+      setTimeout(() => {
+        const ctx = outputCanvas.getContext('2d');
+        const w = outputCanvas.width, h = outputCanvas.height;
+
+        // Copy original onto canvas
+        ctx.putImageData(originalImageData, 0, 0);
+
+        const filter = FILTERS.find(f => f.id === id);
+        if (filter) filter.apply(ctx, w, h, intensity);
+
+        processing.classList.remove('show');
+      }, 40); // tiny delay so spinner shows
+    }
+
+    // ─── INTENSITY SLIDER ─────────────────────────────────────────────────────────
+    intensitySlider.addEventListener('input', () => {
+      intensity = intensitySlider.value / 100;
+      intensityVal.textContent = intensitySlider.value + '%';
       applyFilter(currentFilterId);
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
+    });
 
-// ─── SELECT FILTER ────────────────────────────────────────────────────────────
-function selectFilter(id) {
-  currentFilterId = id;
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.filterId === id);
-  });
-  const f = FILTERS.find(f => f.id === id);
-  activeFilterName.textContent = f.name;
-  applyFilter(id);
-}
+    // ─── DOWNLOAD ─────────────────────────────────────────────────────────────────
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      const filterName = FILTERS.find(f => f.id === currentFilterId)?.name || 'filtered';
+      link.download = `filterlab-${filterName.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.href = outputCanvas.toDataURL('image/png');
+      link.click();
+    });
 
-// ─── APPLY FILTER ─────────────────────────────────────────────────────────────
-function applyFilter(id) {
-  if (!originalImageData) return;
+    // ─── RESET ────────────────────────────────────────────────────────────────────
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      selectFilter('original');
+      intensitySlider.value = 100;
+      intensity = 1.0;
+      intensityVal.textContent = '100%';
+    });
 
-  processing.classList.add('show');
-
-  setTimeout(() => {
-    const ctx = outputCanvas.getContext('2d');
-    const w = outputCanvas.width, h = outputCanvas.height;
-
-    // Copy original onto canvas
-    ctx.putImageData(originalImageData, 0, 0);
-
-    const filter = FILTERS.find(f => f.id === id);
-    if (filter) filter.apply(ctx, w, h, intensity);
-
-    processing.classList.remove('show');
-  }, 40); // tiny delay so spinner shows
-}
-
-// ─── INTENSITY SLIDER ─────────────────────────────────────────────────────────
-intensitySlider.addEventListener('input', () => {
-  intensity = intensitySlider.value / 100;
-  intensityVal.textContent = intensitySlider.value + '%';
-  applyFilter(currentFilterId);
-});
-
-// ─── DOWNLOAD ─────────────────────────────────────────────────────────────────
-document.getElementById('downloadBtn').addEventListener('click', () => {
-  const link = document.createElement('a');
-  const filterName = FILTERS.find(f => f.id === currentFilterId)?.name || 'filtered';
-  link.download = `filterlab-${filterName.toLowerCase().replace(/\s+/g,'-')}.png`;
-  link.href = outputCanvas.toDataURL('image/png');
-  link.click();
-});
-
-// ─── RESET ────────────────────────────────────────────────────────────────────
-document.getElementById('resetBtn').addEventListener('click', () => {
-  selectFilter('original');
-  intensitySlider.value = 100;
-  intensity = 1.0;
-  intensityVal.textContent = '100%';
-});
-
-// ─── NEW IMAGE ────────────────────────────────────────────────────────────────
-document.getElementById('newImgBtn').addEventListener('click', () => {
-  workspace.classList.remove('active');
-  uploadSection.style.display = '';
-  fileInput.value = '';
-  originalImageData = null;
-  currentFilterId = 'original';
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.filterId === 'original');
-  });
-  activeFilterName.textContent = 'Original';
-  intensitySlider.value = 100;
-  intensity = 1.0;
-  intensityVal.textContent = '100%';
-});
-</script>
-<footer style="text-align: center; padding: 20px; font-size: 14px; color: #888;">
-  Version 1.0 - Deployed via Jenkins CI/CD
-</footer>
+    // ─── NEW IMAGE ────────────────────────────────────────────────────────────────
+    document.getElementById('newImgBtn').addEventListener('click', () => {
+      workspace.classList.remove('active');
+      uploadSection.style.display = '';
+      fileInput.value = '';
+      originalImageData = null;
+      currentFilterId = 'original';
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filterId === 'original');
+      });
+      activeFilterName.textContent = 'Original';
+      intensitySlider.value = 100;
+      intensity = 1.0;
+      intensityVal.textContent = '100%';
+    });
+  </script>
+  <footer style="text-align: center; padding: 20px; font-size: 14px; color: #888;">
+    Version 1.0 - Deployed via Jenkins CI/CD
+  </footer>
 </body>
+
 </html>
